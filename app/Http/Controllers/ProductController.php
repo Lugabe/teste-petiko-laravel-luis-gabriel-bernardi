@@ -30,9 +30,10 @@ class ProductController extends Controller
 
 
         $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'price' => 'required|numeric',
+            'products' => 'required|array',
+            'products.*.name' => 'required|string|max:255',
+            'products.*.description' => 'required|string',
+            'products.*.price' => 'required|numeric',
         ]);
 
         $user = $request->user();
@@ -42,14 +43,19 @@ class ProductController extends Controller
         }
 
         try {
-            $product = Product::create([
-                'name' => $request->name,
-                'description' => $request->description,
-                'price' => $request->price,
-            ]);
+            $productsData = $request->input('products');
+            $products = [];
+
+            foreach ($productsData as $productData) {
+                $products[] = Product::create([
+                    'name' => $productData['name'],
+                    'description' => $productData['description'],
+                    'price' => $productData['price'],
+                ]);
+            }
             DB::commit();
 
-            return response()->json($product, 201);
+            return response()->json($products, 201);
         } catch (\Throwable $th) {
             DB::rollBack();
             return response()->json($th, 400);
