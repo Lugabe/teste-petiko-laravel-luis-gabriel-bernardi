@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UserRequest;
 use App\Models\User;
 use DB;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
@@ -16,13 +16,13 @@ class UserController extends Controller
         return response()->json($users);
     }
 
-    public function store(Request $request)
+    public function store(UserRequest $request)
     {
         DB::beginTransaction();
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string',
+            'email' => 'required|string|email',
             'is_admin' => 'required|boolean',
             'password' => 'required'
         ]);
@@ -40,7 +40,7 @@ class UserController extends Controller
             return response()->json($users, 201);
         } catch (\Throwable $th) {
             DB::rollBack();
-            return response()->json($th,400);
+            return response()->json($th, 400);
         }
 
 
@@ -60,7 +60,7 @@ class UserController extends Controller
             }
         } catch (\Throwable $th) {
             DB::rollBack();
-            return response()->json($th,400);
+            return response()->json($th, 400);
         }
 
     }

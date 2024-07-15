@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\User;
+use DB;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -12,42 +15,50 @@ class ProductController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+
+    public function index(): JsonResponse
     {
         $products = Product::get();
         return response()->json($products);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
+
+
+    public function store(Request $request): JsonResponse
     {
+        DB::beginTransaction();
+
+
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric',
         ]);
 
-        $product = Product::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'price' => $request->price,
-        ]);
+        $user = $request->user();
 
-        return response()->json($product, 201);
+        if (!$user->is_admin) {
+            return response()->json(['error' => 'O usuário não é um admin.'], 403);
+        }
+
+        try {
+            $product = Product::create([
+                'name' => $request->name,
+                'description' => $request->description,
+                'price' => $request->price,
+            ]);
+            DB::commit();
+
+            return response()->json($product, 201);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return response()->json($th, 400);
+        }
+
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
+
+    public function show($id): JsonResponse
     {
         $product = Product::find($id);
 
@@ -58,36 +69,67 @@ class ProductController extends Controller
         }
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, $id)
+
+
+    public function update(Request $request, $id): JsonResponse
     {
+        DB::beginTransaction();
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric',
         ]);
 
-        $product = Product::findOrFail($id);
-        $product->update([
-            'name' => $request->name,
-            'description' => $request->description,
-            'price' => $request->price,
-        ]);
+        $user = $request->user();
 
-        return response()->json($product, 200);
+        if (!$user->is_admin) {
+            return response()->json(['error' => 'O usuário não é um admin.'], 403);
+        }
+
+        $product = Product::find($id);
+        if (!$product) {
+            return response()->json(['message' => 'Product Id not exist'], 404);
+        }
+        try {
+            $product->update([
+                'name' => $request->name,
+                'description' => $request->description,
+                'price' => $request->price,
+            ]);
+            DB::commit();
+            return response()->json($product, 200);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return response()->json($th, 400);
+        }
+
+
     }
 
-    public function delete($id)
+    public function delete(Request $request, $id): JsonResponse
     {
-        $product = Product::findOrFail($id);
-        $product->delete();
+        DB::beginTransaction();
 
-        return response()->json('The Product was deleted, id: ' . $id, 200);
+
+        $product = Product::find($id);
+
+        $user = $request->user();
+
+        if (!$user->is_admin) {
+            return response()->json(['error' => 'O usuário não é um admin.'], 403);
+        }
+
+
+        if ($product) {
+
+            $product = Product::findOrFail($id);
+            $product->delete();
+            DB::commit();
+            return response()->json('The Product was deleted, id: ' . $id, 200);
+        } else {
+            DB::rollBack();
+            return response()->json('product id not exist', 400);
+        }
+
     }
 }

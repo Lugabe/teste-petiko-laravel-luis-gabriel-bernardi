@@ -4,22 +4,24 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class AdminMiddleware
 {
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @return mixed
+     */
     public function handle(Request $request, Closure $next)
     {
-        // Verifica se o usuário está autenticado
-        if (Auth::check()) {
-            // Verifica se o usuário é um admin
-            if (Auth::user()->is_admin) {
-                return $next($request);
-            }
+        $user = $request->user();
+
+        if ($user && $user->is_admin) {
+            return $next($request);
         }
 
-        return response()->json(['error' => 'Unauthorized'], 401);
+        return response()->json(['error' => 'Unauthorized'], 403);
     }
 }
-
-

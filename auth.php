@@ -26,7 +26,7 @@ class OAuthProvider
         UserRepositoryInterface $userRepository,
         RefreshTokenRepositoryInterface $refreshTokenRepository
     ) {
-        $privateKey = new CryptKey('file://'.storage_path('oauth-private.key'), null, false);
+        $privateKey = new CryptKey('file://' . storage_path('oauth-private.key'), null, false);
         $encryptionKey = config('app.key');
 
         $this->server = new AuthorizationServer(
@@ -72,4 +72,6 @@ class OAuthProvider
             return $response->withStatus(500);
         }
     }
+
+    
 }
